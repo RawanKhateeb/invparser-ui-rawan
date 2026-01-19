@@ -53,25 +53,6 @@ export default function InvoiceDetailsPage() {
     fetchInvoice();
   }, [invoiceId]);
 
-  const handleEditChange = (field: string, value: any) => {
-    setEditData({
-      ...editData,
-      [field]: value,
-    });
-  };
-
-  const handleSaveChanges = () => {
-    // This is UI-only for demonstration
-    setInvoice(editData as Invoice);
-    setEditMode(false);
-    toast.success('Changes saved locally (demo mode)');
-  };
-
-  const handleCancel = () => {
-    setEditData(invoice || {});
-    setEditMode(false);
-  };
-
   if (isLoading) {
     return (
       <ProtectedRoute>
