@@ -16,12 +16,22 @@ export const invoiceAPI = {
     const formData = new FormData();
     formData.append('file', file);
 
-    const response = await apiClient.post<UploadResponse>('/extract', formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
-    });
-    return response.data;
+    try {
+      // Use axios.post directly with minimal config - don't set Content-Type
+      const response = await axios.post<UploadResponse>(
+        `${API_BASE_URL}/extract`,
+        formData,
+        {
+          headers: {
+            // Let browser set Content-Type with boundary automatically
+          },
+        }
+      );
+      return response.data;
+    } catch (error: any) {
+      console.error('Upload error:', error.response?.status, error.response?.data || error.message);
+      throw error;
+    }
   },
 
   // Get invoice details by ID
@@ -56,11 +66,11 @@ export const invoiceAPI = {
     
     // Transform the response to match InvoiceListItem format
     const invoiceList = response.data.invoices?.map((item: any) => ({
-      InvoiceId: item.invoice.InvoiceId,
-      VendorName: item.invoice.VendorName,
-      InvoiceDate: item.invoice.InvoiceDate,
-      ShippingAddress: item.invoice.ShippingAddress,
-      InvoiceTotal: item.invoice.InvoiceTotal,
+      InvoiceId: item.InvoiceId || item.invoice?.InvoiceId,
+      VendorName: item.VendorName || item.invoice?.VendorName,
+      InvoiceDate: item.InvoiceDate || item.invoice?.InvoiceDate,
+      ShippingAddress: item.ShippingAddress || item.invoice?.ShippingAddress,
+      InvoiceTotal: item.InvoiceTotal || item.invoice?.InvoiceTotal,
     })) || [];
     
     return {

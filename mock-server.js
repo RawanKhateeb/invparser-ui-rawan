@@ -165,14 +165,16 @@ const mockInvoices = {
 };
 
 const server = http.createServer((req, res) => {
-  // Enable CORS
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-  res.setHeader('Content-Type', 'application/json');
+  // Default CORS headers for all responses
+  const corsHeaders = {
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type',
+  };
 
+  // Handle OPTIONS preflight
   if (req.method === 'OPTIONS') {
-    res.writeHead(200);
+    res.writeHead(200, corsHeaders);
     res.end();
     return;
   }
@@ -187,10 +189,10 @@ const server = http.createServer((req, res) => {
     const invoice = mockInvoices[invoiceId];
     
     if (invoice) {
-      res.writeHead(200);
+      res.writeHead(200, { ...corsHeaders, 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ invoice }));
     } else {
-      res.writeHead(404);
+      res.writeHead(404, { ...corsHeaders, 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ message: 'Invoice not found' }));
     }
     return;
@@ -203,7 +205,7 @@ const server = http.createServer((req, res) => {
       inv => inv.VendorName.toLowerCase().includes(vendorName.toLowerCase())
     );
 
-    res.writeHead(200);
+    res.writeHead(200, { ...corsHeaders, 'Content-Type': 'application/json' });
     res.end(JSON.stringify({ 
       invoices: invoices.map(inv => ({
         InvoiceId: inv.InvoiceId,
@@ -217,35 +219,69 @@ const server = http.createServer((req, res) => {
     return;
   }
 
+  // GET /invoices - Get all invoices
+  if (req.method === 'GET' && urlParts[0] === 'invoices' && !urlParts[1]) {
+    const invoices = Object.values(mockInvoices).map(inv => ({
+      InvoiceId: inv.InvoiceId,
+      VendorName: inv.VendorName,
+      InvoiceDate: inv.InvoiceDate,
+      ShippingAddress: inv.ShippingAddress,
+      InvoiceTotal: inv.InvoiceTotal,
+    }));
+
+    res.writeHead(200, { ...corsHeaders, 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ 
+      invoices,
+      count: invoices.length,
+      total: invoices.length
+    }));
+    return;
+  }
+
   // POST /extract - Mock upload endpoint
   if (req.method === 'POST' && urlParts[0] === 'extract') {
-    let body = '';
-    req.on('data', chunk => {
-      body += chunk.toString();
+    console.log('=== POST /extract received ===');
+    
+    // Just consume the data without processing
+    req.on('data', () => {
+      // Ignore data
     });
+
     req.on('end', () => {
-      // Generate a random invoice ID for uploaded files
+      console.log('Upload complete, sending response');
+      
+      // Generate a random invoice ID
       const invoiceId = 'INV-' + Math.floor(Math.random() * 10000).toString().padStart(4, '0');
-      res.writeHead(200);
-      res.end(JSON.stringify({ 
+      
+      const responseData = { 
         invoiceId,
         vendor: 'Unknown Vendor',
         amount: 0,
         status: 'processed',
         message: 'Invoice processed successfully'
-      }));
+      };
+      
+      const jsonStr = JSON.stringify(responseData);
+      
+      res.writeHead(200, {
+        ...corsHeaders,
+        'Content-Type': 'application/json',
+        'Content-Length': Buffer.byteLength(jsonStr),
+      });
+      res.end(jsonStr);
     });
+    
     return;
   }
 
   // Health check
   if (req.method === 'GET' && urlParts[0] === 'health') {
-    res.writeHead(200);
+    res.writeHead(200, { ...corsHeaders, 'Content-Type': 'application/json' });
     res.end(JSON.stringify({ status: 'ok' }));
     return;
   }
 
-  res.writeHead(404);
+  res.writeHead(404, { ...corsHeaders, 'Content-Type': 'application/json' });
   res.end(JSON.stringify({ message: 'Not found' }));
 });
 
@@ -253,6 +289,7 @@ server.listen(PORT, () => {
   console.log(`\n✅ Mock Invoice API Server running on http://localhost:${PORT}`);
   console.log(`\nAvailable endpoints:`);
   console.log(`  GET /invoice/:id - Get invoice details`);
+  console.log(`  GET /invoices - Get all invoices (with count)`);
   console.log(`  GET /invoices/vendor/:name - Search invoices by vendor`);
   console.log(`  POST /extract - Upload and extract invoice`);
   console.log(`  GET /health - Health check\n`);

@@ -100,6 +100,7 @@ export default function UploadPage() {
       }));
       toast.success(`${file.name} uploaded successfully`);
     } catch (error: any) {
+      console.error('Upload failed:', error);
       setUploadStatus((prev) => ({
         ...prev,
         [file.name]: {

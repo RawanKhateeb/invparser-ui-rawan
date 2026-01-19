@@ -4,8 +4,43 @@ import { ProtectedRoute } from '@/components/ProtectedRoute';
 import { Navigation } from '@/components/Navigation';
 import Link from 'next/link';
 import { FileText, Upload, Search, TrendingUp } from 'lucide-react';
+import { useEffect, useState } from 'react';
 
 export default function DashboardPage() {
+  const [totalInvoices, setTotalInvoices] = useState<number>(0);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchTotalInvoices = async () => {
+      try {
+        const response = await fetch('http://localhost:8080/invoices', {
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        });
+        
+        console.log('Response status:', response.status);
+        const data = await response.json();
+        console.log('Response data:', data);
+        
+        if (response.ok) {
+          const count = data.count || data.total || data.invoices?.length || 0;
+          console.log('Total invoices:', count);
+          setTotalInvoices(count);
+        } else {
+          setTotalInvoices(0);
+        }
+      } catch (error) {
+        console.error('Error fetching total invoices:', error);
+        setTotalInvoices(0);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchTotalInvoices();
+  }, []);
+
   return (
     <ProtectedRoute>
       <Navigation />
@@ -21,8 +56,8 @@ export default function DashboardPage() {
           <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
             <StatCard
               title="Total Invoices"
-              value="—"
-              description="Connect to backend"
+              value={loading ? "—" : totalInvoices.toString()}
+              description={loading ? "Loading..." : "Total in system"}
               icon={<FileText size={24} className="text-blue-600" />}
               bgColor="bg-blue-50"
             />
@@ -50,8 +85,8 @@ export default function DashboardPage() {
           </div>
 
           {/* Quick Actions */}
-          <div className="bg-white rounded-lg shadow-md p-8 mb-8">
-            <h2 className="text-2xl font-bold text-slate-900 mb-6">Quick Actions</h2>
+          <div className="bg-gradient-to-r from-white to-blue-50 rounded-lg shadow-md p-8 mb-8 border border-blue-100">
+            <h2 className="text-2xl font-bold bg-gradient-to-r from-slate-900 to-blue-700 bg-clip-text text-transparent mb-6">Quick Actions</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               <ActionButton
                 href="/upload"
@@ -104,12 +139,12 @@ function StatCard({
   bgColor: string;
 }) {
   return (
-    <div className="bg-white rounded-lg shadow-md p-6 border border-slate-100 hover:shadow-lg transition-shadow">
-      <div className={`w-12 h-12 rounded-lg ${bgColor} flex items-center justify-center mb-4`}>
+    <div className="bg-gradient-to-br from-white to-slate-50 rounded-lg shadow-md p-6 border border-slate-200 hover:shadow-xl hover:border-blue-300 transition-all duration-300 group">
+      <div className={`w-14 h-14 rounded-xl ${bgColor} flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-300`}>
         {icon}
       </div>
-      <h3 className="text-sm font-medium text-slate-600 mb-1">{title}</h3>
-      <p className="text-3xl font-bold text-slate-900 mb-2">{value}</p>
+      <h3 className="text-sm font-semibold text-slate-600 mb-2 uppercase tracking-wide">{title}</h3>
+      <p className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-blue-700 bg-clip-text text-transparent mb-2">{value}</p>
       <p className="text-xs text-slate-500">{description}</p>
     </div>
   );
@@ -128,14 +163,14 @@ function ActionButton({
 }) {
   return (
     <Link href={href}>
-      <div className="p-6 rounded-lg border-2 border-slate-200 hover:border-blue-500 hover:bg-blue-50 transition-all cursor-pointer group">
+      <div className="p-6 rounded-xl border-2 border-slate-300 hover:border-blue-500 hover:bg-gradient-to-br hover:from-blue-50 hover:to-indigo-50 transition-all duration-300 cursor-pointer group shadow-sm hover:shadow-lg">
         <div className="flex items-start space-x-4">
-          <div className="p-2 rounded-lg bg-slate-100 group-hover:bg-blue-200 transition-colors text-slate-600 group-hover:text-blue-600">
+          <div className="p-3 rounded-lg bg-gradient-to-br from-slate-100 to-slate-200 group-hover:from-blue-400 group-hover:to-indigo-500 transition-all duration-300 text-slate-600 group-hover:text-white">
             {icon}
           </div>
           <div>
-            <h3 className="font-semibold text-slate-900 group-hover:text-blue-700">{title}</h3>
-            <p className="text-sm text-slate-600 mt-1">{description}</p>
+            <h3 className="font-semibold text-slate-900 group-hover:text-blue-700 transition-colors">{title}</h3>
+            <p className="text-sm text-slate-600 mt-1 group-hover:text-slate-700">{description}</p>
           </div>
         </div>
       </div>
