@@ -2,22 +2,23 @@ name: CI
 
 on:
   push:
-    branches: [ "main" ]
+    branches: ["main"]
   pull_request:
-    branches: [ "main" ]
+    branches: ["main"]
 
 jobs:
   test:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repository
+      - name: Checkout
         uses: actions/checkout@v4
 
+      # ---------- Node / Next ----------
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 18
+          node-version: 20
 
       - name: Install Node dependencies
         run: npm ci
@@ -25,23 +26,26 @@ jobs:
       - name: Build Next.js
         run: npm run build
 
+      # Start Next.js in background (so Playwright can reach localhost:3000)
       - name: Start Next.js (background)
         run: |
-          npm install -g wait-on
-          nohup npm run start -- -p 3000 > next.log 2>&1 &
-          wait-on http://localhost:3000
+          npm run start -- -p 3000 &
+          sleep 3
 
+      # ---------- Python / Pytest / Playwright ----------
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
 
-      - name: Install Python test dependencies
+      - name: Install Python dependencies
         run: |
           python -m pip install --upgrade pip
           pip install pytest playwright
-          playwright install --with-deps
+          python -m playwright install --with-deps chromium
 
-      - name: Run Python tests
-        run: pytest -p no:anyio -p no:asyncio
-
+      - name: Run pytest
+        env:
+          BASE_URL: http://localhost:3000
+        run: |
+          pytest -p no:anyio -p no:asyncio -v
