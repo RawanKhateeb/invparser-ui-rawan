@@ -3,7 +3,8 @@ import unittest
 import time
 from playwright.sync_api import sync_playwright, expect
 
-BASE_URL = "http://localhost:3000"
+# Base URL (can be overridden in CI if needed)
+BASE_URL = os.getenv("BASE_URL", "http://localhost:3000")
 AUTH_FILE = "auth_state.json"
 
 
@@ -12,7 +13,11 @@ class TestInvParserUI(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.playwright = sync_playwright().start()
-        cls.browser = cls.playwright.chromium.launch(headless=False)
+
+        # ✅ Headless in CI, headed locally
+        cls.browser = cls.playwright.chromium.launch(
+            headless=(os.getenv("CI") == "true")
+        )
 
         # Create auth state once (login and save cookies/localStorage)
         cls.ensure_auth_state()
@@ -43,7 +48,7 @@ class TestInvParserUI(unittest.TestCase):
         page.get_by_placeholder("Enter password").fill("admin")
         page.get_by_role("button", name="Sign In").click()
 
-        # Wait until we are logged in (redirect somewhere not login)
+        # Wait until dashboard
         page.wait_for_url("**/dashboard", wait_until="domcontentloaded")
         page.wait_for_load_state("networkidle")
 
@@ -55,7 +60,8 @@ class TestInvParserUI(unittest.TestCase):
 
     def setUp(self):
         self.page = self.context.new_page()
-        # Manually set the auth token that was saved
+
+        # Ensure auth token exists
         self.page.add_init_script("""
             localStorage.setItem('auth_token', 'true');
         """)
@@ -69,106 +75,80 @@ class TestInvParserUI(unittest.TestCase):
 
     def test_dashboard_access(self):
         self.page.goto(f"{BASE_URL}/dashboard", wait_until="domcontentloaded")
-        # Wait for any redirects to complete
         time.sleep(1)
         self.page.wait_for_load_state("networkidle")
-
-        # Must not redirect back to login
-        self.assertNotIn("/login", self.page.url, f"Redirected to login. URL: {self.page.url}")
+        self.assertNotIn("/login", self.page.url)
 
     def test_dashboard_statistics_cards(self):
-        """Test that dashboard displays statistics cards"""
         self.page.goto(f"{BASE_URL}/dashboard", wait_until="domcontentloaded")
         self.page.wait_for_load_state("networkidle")
-        
-        # Check for statistics card titles
-        total_invoices = self.page.get_by_text("Total Invoices")
-        processed = self.page.get_by_text("Processed")
-        pending = self.page.get_by_text("Pending")
-        recent = self.page.get_by_text("Recent Uploads")
-        
-        self.assertTrue(total_invoices.is_visible())
-        self.assertTrue(processed.is_visible())
-        self.assertTrue(pending.is_visible())
-        self.assertTrue(recent.is_visible())
+
+        self.assertTrue(self.page.get_by_text("Total Invoices").is_visible())
+        self.assertTrue(self.page.get_by_text("Processed").is_visible())
+        self.assertTrue(self.page.get_by_text("Pending").is_visible())
+        self.assertTrue(self.page.get_by_text("Recent Uploads").is_visible())
 
     def test_navigation_links(self):
-        """Test all navigation menu links work"""
         self.page.goto(f"{BASE_URL}/dashboard", wait_until="domcontentloaded")
         self.page.wait_for_load_state("networkidle")
-        
-        # Navigate to upload page directly instead of clicking link
+
         self.page.goto(f"{BASE_URL}/upload", wait_until="domcontentloaded")
         self.page.wait_for_load_state("networkidle")
         self.assertIn("/upload", self.page.url)
-        
-        # Navigate back to dashboard
+
         self.page.goto(f"{BASE_URL}/dashboard", wait_until="domcontentloaded")
         self.page.wait_for_load_state("networkidle")
         self.assertIn("/dashboard", self.page.url)
-        
-        # Navigate to invoices
+
         self.page.goto(f"{BASE_URL}/invoices", wait_until="domcontentloaded")
         self.page.wait_for_load_state("networkidle")
         self.assertIn("/invoices", self.page.url)
 
     def test_upload_page_access(self):
-        """Test that upload page loads correctly"""
         self.page.goto(f"{BASE_URL}/upload", wait_until="domcontentloaded")
         self.page.wait_for_load_state("networkidle")
-        
-        # Check page heading
+
         page_title = self.page.get_by_role("heading", name="Upload Invoice")
         self.assertTrue(page_title.is_visible())
 
     def test_invoices_page_access(self):
-        """Test that invoices search page loads correctly"""
         self.page.goto(f"{BASE_URL}/invoices", wait_until="domcontentloaded")
         self.page.wait_for_load_state("networkidle")
-        
-        # Check page heading (use exact to avoid multiple matches)
+
         page_title = self.page.get_by_role("heading", name="Invoices", exact=True)
         self.assertTrue(page_title.is_visible())
-        
-        # Check search form exists
+
         vendor_input = self.page.locator('input[id="vendor"]')
         self.assertTrue(vendor_input.is_visible())
 
     def test_invoice_search(self):
-        """Test searching for invoices by vendor name"""
         self.page.goto(f"{BASE_URL}/invoices", wait_until="domcontentloaded")
         self.page.wait_for_load_state("networkidle")
-        
-        # Enter vendor name
+
         vendor_input = self.page.locator('input[id="vendor"]')
         vendor_input.fill("SuperStore")
         time.sleep(0.5)
-        
-        # Click search button
+
         search_button = self.page.get_by_role("button", name="Search")
         search_button.click()
         self.page.wait_for_load_state("networkidle")
-        
-        # Check if results appear
-        time.sleep(2)
-        # Just verify the page stays on invoices after search
+
+        time.sleep(1)
         self.assertIn("/invoices", self.page.url)
 
     def test_logout_functionality(self):
-        """Test that logout removes authentication and redirects to login"""
         self.page.goto(f"{BASE_URL}/dashboard", wait_until="domcontentloaded")
         self.page.wait_for_load_state("networkidle")
-        
-        # Try to find logout button - skip if not found
+
         try:
-            logout_buttons = self.page.locator('a, button').filter(has_text="Logout")
+            logout_buttons = self.page.locator("a, button").filter(has_text="Logout")
             if logout_buttons.count() > 0:
                 logout_buttons.first.click()
                 self.page.wait_for_load_state("networkidle")
                 time.sleep(1)
                 self.assertIn("/login", self.page.url)
-        except Exception as e:
-            # Skip test if logout button not found
+        except Exception:
+            # If logout button not present, skip
             pass
 
 
