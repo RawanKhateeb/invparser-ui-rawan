@@ -22,6 +22,15 @@ jobs:
       - name: Install Node dependencies
         run: npm ci
 
+      - name: Build Next.js
+        run: npm run build
+
+      - name: Start Next.js (background)
+        run: |
+          npm install -g wait-on
+          nohup npm run start -- -p 3000 > next.log 2>&1 &
+          wait-on http://localhost:3000
+
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
