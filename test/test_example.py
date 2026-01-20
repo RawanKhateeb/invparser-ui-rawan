@@ -15,6 +15,8 @@ APP_URL = os.getenv("APP_URL", "http://localhost:3000")
 HEADLESS = os.getenv("HEADLESS", "true").lower() == "true"
 
 
+
+
 class TestInvParserUI(unittest.TestCase):
     """Test suite for Invoice Parser UI using Page Object Model."""
 
