@@ -1,25 +1,22 @@
-'use client';
+'use client'
 
-import { useEffect } from "react";
-import { useRouter } from "next/navigation";
-import { useAuth } from "@/components/AuthContext";
+export const dynamic = 'force-dynamic'
+
+import { useRouter } from 'next/navigation'
+import { useEffect } from 'react'
+import { useAuth } from '@/app/context/AuthContext'
 
 export default function Home() {
-  const { isAuthenticated, isLoading } = useAuth();
-  const router = useRouter();
+  const { isAuthenticated } = useAuth()
+  const router = useRouter()
 
   useEffect(() => {
-    if (!isLoading) {
-      router.replace(isAuthenticated ? "/dashboard" : "/login");
+    if (isAuthenticated) {
+      router.push('/dashboard')
+    } else {
+      router.push('/login')
     }
-  }, [isAuthenticated, isLoading, router]);
+  }, [isAuthenticated, router])
 
-  return (
-    <div className="flex items-center justify-center min-h-screen">
-      <div className="text-center">
-        <div className="inline-block w-12 h-12 rounded-full border-4 border-slate-200 border-t-slate-600 animate-spin" />
-        <p className="mt-4 text-slate-600">Loading...</p>
-      </div>
-    </div>
-  );
+  return null
 }

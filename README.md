@@ -1,45 +1,175 @@
 # Invoice Parser Frontend
 
-A modern, production-quality Next.js frontend application for intelligent invoice extraction and management.
+A modern, production-quality Next.js application that serves as the frontend for an existing Invoice Parser backend API. Built with TypeScript, Tailwind CSS, and shadcn/ui components for an enterprise-grade user experience.
 
 ## Features
 
-- **User Authentication**: Simple login system (demo: username `admin`, password `admin`)
+- **Authentication**: Frontend-only dummy authentication (admin/admin) with localStorage persistence across browser restarts
 - **Invoice Upload**: Drag-and-drop file upload with support for PDF and image formats
-- **Invoice Search**: Search invoices by vendor name
-- **Invoice Management**: View detailed invoice information with editable fields
-- **Enterprise Design**: Modern UI with Oracle-inspired color palette
-- **Responsive Layout**: Mobile-friendly design for all device sizes
+- **Invoice Search**: Vendor-driven invoice search and filtering
+- **Invoice Details**: View detailed invoice information with UI-only editable fields
+- **Responsive Design**: Modern, clean UI with Oracle-inspired color palette
+- **Toast Notifications**: Real-time feedback on upload and search operations using Sonner
 
-## Technology Stack
+## Project Structure
 
-- **Framework**: Next.js 16+ with App Router
+```
+app/
+├── (auth)/
+│   └── login/
+│       └── page.tsx              # Login page (admin/admin)
+├── (dashboard)/
+│   ├── layout.tsx                # Dashboard layout with navbar
+│   ├── dashboard/
+│   │   └── page.tsx              # Dashboard overview
+│   ├── upload/
+│   │   └── page.tsx              # Invoice upload page with drag-and-drop
+│   ├── invoices/
+│   │   └── page.tsx              # Invoices list with vendor search
+│   └── invoice/
+│       └── [id]/
+│           └── page.tsx          # Invoice details page
+├── context/
+│   └── AuthContext.tsx           # Authentication context with localStorage
+├── lib/
+│   ├── api.ts                    # Backend API client utilities
+│   └── constants.ts              # Constants and configuration
+├── components/
+│   └── Navbar.tsx                # Navigation bar component
+├── globals.css                   # Global Tailwind styles
+├── layout.tsx                    # Root layout with AuthProvider
+└── page.tsx                      # Root page (redirects to login/dashboard)
+```
+
+## Technical Stack
+
+- **Framework**: Next.js 14 with App Router
 - **Language**: TypeScript
-- **Styling**: Tailwind CSS
-- **UI Components**: Radix UI & shadcn/ui
-- **HTTP Client**: Axios
+- **Styling**: Tailwind CSS with Oracle-inspired color palette
+- **Components**: Built with semantic HTML and Tailwind classes
+- **State Management**: React Context API
 - **Notifications**: Sonner
 - **Icons**: Lucide React
+- **HTTP Client**: Fetch API with custom utilities
 
 ## Getting Started
 
 ### Prerequisites
 
-- Node.js 18+ and npm/yarn installed
+- Node.js 18+ and npm
 
 ### Installation
 
-1. Install dependencies:
 ```bash
+# Install dependencies
 npm install
-```
 
-2. Start the development server:
-```bash
+# Run development server
 npm run dev
 ```
 
-3. Open [http://localhost:3000](http://localhost:3000) in your browser
+Open [http://localhost:3000](http://localhost:3000) in your browser.
+
+The app will automatically redirect to `/login`.
+
+### Demo Credentials
+
+- **Username**: `admin`
+- **Password**: `admin`
+
+## Backend API Integration
+
+The frontend connects to a backend API running at `http://localhost:8080`.
+
+### Available Endpoints
+
+- **POST `/extract`**
+  - Upload an invoice file using multipart/form-data
+  - Returns extracted invoice data with `invoiceId`
+
+- **GET `/invoice/{invoice_id}`**
+  - Retrieve details of a specific invoice
+  - Used on the invoice details page
+
+- **GET `/invoices/vendor/{vendor_name}`**
+  - Retrieve invoices filtered by vendor name
+  - Used for vendor-driven search on the invoices page
+
+### Environment Configuration
+
+The backend URL is configured in `.env.local`:
+
+```
+NEXT_PUBLIC_API_BASE_URL=http://localhost:8080
+```
+
+## Pages & Features
+
+### 1. Login Page (`/login`)
+- Dummy authentication (frontend-only)
+- Valid credentials: admin/admin
+- Authentication state persists in localStorage across browser restarts
+- Redirects to `/dashboard` on successful login
+
+### 2. Dashboard (`/dashboard`)
+- Overview of invoice management system
+- Statistics cards (placeholder data)
+- Quick action buttons for upload and vendor search
+- Navigation links to all features
+- Logout button in navbar
+
+### 3. Upload Invoice (`/upload`)
+- Drag-and-drop file upload area
+- Click-to-select file support
+- File type validation (PDF, JPEG, PNG, GIF, WebP)
+- File size limit: 10 MB
+- Loading spinner during upload
+- Toast notifications for success/error
+- Sidebar with format requirements
+
+### 4. Invoices List (`/invoices`)
+- Vendor name input for filtering (UI-level, not route parameter)
+- Displays results in a responsive table
+- Sorting by invoice date or amount
+- Status filtering (pending/processed)
+- Pagination with configurable items per page
+- Click to navigate to invoice details
+
+### 5. Invoice Details (`/invoice/[id]`)
+- Dynamic route parameter: `[id]` represents the invoice ID
+- Fetches fresh data from `/invoice/{invoice_id}` on each render
+- Displays structured invoice information
+- Editable fields (UI-only demonstration, no backend submission)
+- Edit/Save/Cancel buttons for field modification
+- Back navigation to invoices list
+- Download button (UI placeholder)
+- Summary sidebar with totals and status
+
+## Authentication
+
+### How It Works
+
+1. User enters credentials on login page
+2. Frontend validates against hardcoded credentials (admin/admin)
+3. Authentication state is stored in `AuthContext`
+4. Auth flag is persisted in `localStorage`
+5. On page refresh, auth state is restored from localStorage
+6. Logout clears localStorage and redirects to login page
+
+### State Persistence
+
+- Auth state persists across browser restarts via localStorage
+- Logout requires explicit action from user
+- No backend authentication integration (frontend-only demo)
+
+## Data Handling
+
+- **Invoice Data**: Stateless - always fetched fresh from backend API
+- **No Persistence**: Invoice data is NOT stored in localStorage or sessionStorage
+- **UI-Only Editing**: Editable fields on details page are demonstration only
+- **Backend as Source of Truth**: All invoice data comes directly from backend API
+
+## Development
 
 ### Building for Production
 
@@ -48,128 +178,56 @@ npm run build
 npm start
 ```
 
-## Backend API Integration
-
-The application connects to a backend API at `http://localhost:8080` with the following endpoints:
-
-### POST `/extract`
-Upload an invoice file for extraction.
-- **Headers**: `Content-Type: multipart/form-data`
-- **Body**: File upload
-- **Response**: Invoice data with `invoiceId`
-
-### GET `/invoice/{invoice_id}`
-Retrieve details of a specific invoice.
-- **Response**: Invoice object with full details
-
-### GET `/invoices/vendor/{vendor_name}`
-Retrieve invoices filtered by vendor name.
-- **Response**: Array of invoices matching the vendor
-
-## Project Pages
-
-### `/login`
-Dummy login page with credentials (admin/admin)
-
-### `/dashboard`
-Overview page with statistics and quick actions
-
-### `/upload`
-Drag-and-drop invoice upload interface
-
-### `/invoices`
-Search and browse invoices by vendor name
-
-### `/invoice/[id]`
-Detailed invoice view with editable fields
-
-## Usage
-
-### Login
-1. Navigate to `/login`
-2. Enter credentials:
-   - Username: `admin`
-   - Password: `admin`
-3. Click "Sign In"
-
-### Upload Invoice
-1. Click "Upload Invoice" in the dashboard or navigation
-2. Drag and drop files or click "Browse Files"
-3. Supported formats: PDF, JPEG, PNG, GIF, WebP (max 50MB)
-4. Click "Upload" or "Upload All"
-5. View extracted invoice details by clicking the invoice ID link
-
-### Search Invoices
-1. Click "Invoices" in the navigation
-2. Enter a vendor name
-3. Click "Search"
-4. Sort by date, amount, or vendor name
-5. Click "View" to see invoice details
-
-### View Invoice Details
-1. Navigate to an invoice from the invoices list
-2. View all extracted information
-3. Click "Edit" to make local changes (demo mode only)
-4. Click "Download" for invoice download (if backend supports)
-
-## Configuration
-
-### API Base URL
-To change the backend API URL, modify `lib/api.ts`:
-```typescript
-const API_BASE_URL = 'http://localhost:8080';
-```
-
-## Design System
-
-The application uses a professional color palette:
-- **Primary**: Blue
-- **Secondary**: Slate
-- **Success**: Green
-- **Warning**: Yellow
-- **Error**: Red
-
-## Troubleshooting
-
-### Backend Connection Issues
-- Ensure the backend server is running on `http://localhost:8080`
-- Check network connectivity
-
-### Login Issues
-- Ensure using correct credentials: `admin`/`admin`
-- Check browser localStorage is enabled
-
----
-
-**Built with Next.js 16+, TypeScript, and Tailwind CSS**
+### Linting
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm run lint
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## UI/UX Design
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### Color Palette (Oracle-Inspired)
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- **Primary**: `oracle-600` (#6f82b3) - Professional blue
+- **Dark**: `oracle-950` (#1f2333) - Deep navy
+- **Light**: `oracle-50` (#f5f7fa) - Off-white background
+- **Accent**: Gradient from oracle-600 to oracle-800
 
-## Learn More
+### Component Design
 
-To learn more about Next.js, take a look at the following resources:
+- Consistent spacing using Tailwind's scale
+- Clear typography hierarchy
+- Accessible form inputs with labels
+- Responsive grid layouts
+- Hover states and transitions
+- Clear error and success states
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Notes
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+- This is a **FRONTEND-ONLY** implementation
+- Backend API must be running at `http://localhost:8080`
+- No backend code or modifications are included
+- Mock data is not generated; all data comes from the backend API
+- Editable fields on invoice details are UI demonstration only
 
-## Deploy on Vercel
+## Testing the Application
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+1. **Login**: Use admin/admin credentials
+2. **Upload**: Try uploading a PDF or image file (mock backend responses)
+3. **Search**: Enter a vendor name to search for invoices
+4. **View Details**: Click on an invoice to view full details
+5. **Edit**: Click Edit button to modify invoice fields (UI only)
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Future Enhancements
+
+- Integration with real backend authentication
+- Excel export for invoices
+- Advanced filtering and search capabilities
+- Multi-file batch upload
+- Invoice approval workflow
+- User profile management
+- Dark mode theme support
+
+## License
+
+MIT
